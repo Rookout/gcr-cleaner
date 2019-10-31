@@ -42,3 +42,4 @@ docker run -it -e PROJECT_ID=my-project \
   -e CLUSTER_NAME="prod" \
     gcr-cleaner:0.0.1
 ```
+
