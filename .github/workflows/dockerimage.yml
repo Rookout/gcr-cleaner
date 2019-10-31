@@ -13,7 +13,7 @@ jobs:
     - name: Publish to Registry
       uses: elgohr/Publish-Docker-Github-Action@master
       with:
-        name: rookout/gcr-cleaner
+        name: rookout/gcr-cleaner/cleaner
         username: Rookout
         password: ${{ secrets.GITHUB_TOKEN }}
         registry: docker.pkg.github.com
