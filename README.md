@@ -9,13 +9,9 @@ It queries all pods and replicasets in the GKE cluster and prevents these image 
 
 It uses `RETENTION_DAYS` to delete images older than this value.
 
-It uses `KEEP_TAGS` number to keep the `KEEP_TAGS` most recent tags
-
-`TODO`: This is only a dry run. Check the `entrypoint.sh` to uncomment the section that does digest deletion. I'm planning on enabling and disabling dry-run via ENV vars but when I properly test this in production and get some confidence.
+It uses `KEEP_TAGS` number to keep the `KEEP_TAGS` most recent tags.
 
 `WARNING`: This is an alpha version! Be very careful using this in production.
-
-`TODO`: I want to rewrite this to python using `pykube-ng` and `docker-py`.
 
 ## How to build it
 ```
