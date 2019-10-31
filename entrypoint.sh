@@ -1,8 +1,6 @@
 #!/bin/bash
 set -euo pipefail
 
-# todo: rewrite this to python (pykube-ng, docker-py)
-
 # auth
 gcloud config set project "$PROJECT_ID"
 [[ "$GCLOUD_SERVICE_KEY" != "" ]] && ( echo "$GCLOUD_SERVICE_KEY" | base64 -d > /gcloud-service-key.json )
@@ -25,7 +23,7 @@ ACCESS_TOKEN=$(gcloud auth print-access-token)
 
 ## use docker v2 api directly
 DOCKER_REGISTRY_PROTO='https://'
-DOCKER_REGISTRY_HOST='eu.gcr.io'
+DOCKER_REGISTRY_HOST=${DOCKER_REGISTRY_HOST:-us.gcr.io}
 
 ## fetch all images from the registry
 ### I'm ignoring pagination as there are not so many images in _catalog
@@ -76,7 +74,7 @@ do
   # fetch all tags for this particular image
   # TODO: solve pagination?
   # https://docs.docker.com/registry/spec/api/
-  curl --silent --show-error -u_token:"$ACCESS_TOKEN" -X GET  "https://eu.gcr.io/v2/$image/tags/list" 2>/dev/null |
+  curl --silent --show-error -u_token:"$ACCESS_TOKEN" -X GET  "https://${DOCKER_REGISTRY_HOST}/v2/$image/tags/list" 2>/dev/null |
     # and dump the whole object formatted to a temp file (this file is each loop overwritten)
     jq '.' > tmp.json
 
@@ -84,7 +82,7 @@ do
   #head tmp.json
 
   # filter out only the image we want and don't write "null" ( // empty) to the output file if the image is not used in the cluster
-  jq '.usedtags."'eu.gcr.io/"$image"'"  // empty ' > used-tags-tmp.json <used-tags.json
+  jq '.usedtags."'$DOCKER_REGISTRY_HOST/"$image"'"  // empty ' > used-tags-tmp.json <used-tags.json
 
   #echo "DEBUG:"
   #head used-tags-tmp.json
@@ -114,18 +112,21 @@ do
     >final.json
 
   TO_DELETE=$(jq --raw-output '.digest' final.json) #| head
+  echo "$TO_DELETE" > TO_DELETE
   if [[ "$TO_DELETE" != "" ]]
   then
-    echo "image=$image:"
-    echo "$( wc -l <used-tags-tmp.json ) tags found in cluster, $(echo "$TO_DELETE" | wc -l) digests to delete:"
-    echo "$TO_DELETE" | head || true
+    echo "image=$image"
+    echo "$( wc -l <used-tags-tmp.json ) tags found in cluster, $(cat TO_DELETE | wc -l) digests to delete:"
+    cat TO_DELETE | head || true
     echo "... and others"
     # TOOD: how many failed the check Date?
 
     # TODO: now this is only a dry-run, later you can delete these digests
-    # foreach digest in TO_DELETE
-    # gcloud container images delete -q --force-delete-tags "${IMAGE}@${digest}"
-    # + gcloud container images delete -q --force-delete-tags "eu.gcr.io/my-project/foo/bar@sha256:296e2378f7a14695b2f53101a3bd443f656f823c46d13bf6406b91e9e9950ef0"
+    while IFS= read -r line
+    do
+      # line = digest
+      gcloud container images delete -q --force-delete-tags "${DOCKER_REGISTRY_HOST}/${image}@${line}"
+    done < "TO_DELETE"
 
   else
     echo "image=$image:"
