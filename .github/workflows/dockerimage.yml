@@ -1,0 +1,21 @@
+name: gcr-cleaner
+
+on:
+  push:
+    branches: 
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Build the Docker image
+      run: docker build . --tag gcr-cleaner:$(date +%s)
+    - name: Publish to Registry
+      uses: elgohr/Publish-Docker-Github-Action@master
+      with:
+        name: Rookout/gcr-cleaner
+        username: Rookout
+        password: ${{ secrets.GITHUB_TOKEN }}
+        registry: docker.pkg.github.com
